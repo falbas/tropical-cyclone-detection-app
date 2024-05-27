@@ -69,7 +69,7 @@ for i in range(0, len(valid_time)):
 # cyclone detection
 
 os.mkdir(f"output/{date}")
-f = open(f"result/{date}.txt", "a")
+f = open(f"result/{date}.csv", "a")
 image_list = os.listdir(f"input/{date}")
 
 model = YOLO("model/best.pt")
