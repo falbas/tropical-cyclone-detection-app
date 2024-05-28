@@ -3,8 +3,7 @@ import dash_leaflet as dl
 import datetime
 
 
-# dt = datetime.datetime.now()
-dt = datetime.datetime(2024, 5, 27)
+dt = datetime.datetime.now()
 
 dates = []
 for i in range(0, 10):
@@ -39,7 +38,7 @@ app.layout = [
                 ],
             ),
             dl.Map(
-                dl.TileLayer(),
+                [dl.TileLayer(), dl.LayerGroup(id="marker")],
                 center=[-2.50, 117.50],
                 zoom=5,
                 style={"height": "100%", "width": "80%"},
@@ -52,7 +51,6 @@ app.layout = [
 
 @callback(Output("initial-time-output", "children"), Input("initial-time", "value"))
 def display_step(value):
-    # patched_children = Patch()
     patched_children = []
     f = open(f"result/{value}.csv", "r")
     index = 1
@@ -80,14 +78,23 @@ def display_output(_):
 
 
 @callback(
-    Output("map", "viewport"),
+    Output("marker", "children"),
     Input({"type": "btn-step", "index": ALL, "value": ALL}, "n_clicks"),
 )
-def fly_to(_):
+def add_marker(_):
     if ctx.triggered_id == None:
         return ""
     value = ctx.triggered_id.value.split(",")
-    return dict(center=[float(value[2]), float(value[3])], zoom=6, transition="flyTo")
+    return (
+        dl.DivMarker(
+            position=[float(value[2]), float(value[3])],
+            iconOptions=dict(
+                html="<img src='./assets/images/tc.png'/>",
+                className="tc-marker",
+                iconSize=[50, 50],
+            ),
+        ),
+    )
 
 
 if __name__ == "__main__":
