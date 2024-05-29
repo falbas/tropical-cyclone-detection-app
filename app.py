@@ -51,18 +51,36 @@ app.layout = [
 
 @callback(Output("initial-time-output", "children"), Input("initial-time", "value"))
 def display_step(value):
-    patched_children = []
-    f = open(f"result/{value}.csv", "r")
+    out = []
+    try:
+        f = open(f"result/{value}.csv", "r")
+        for line in f.readlines():
+            line = line.strip().split(",")
+            if len(out) == 0:
+                out.append([[line[1], line[2], line[3]]])
+            elif len(out) > 0 and line[1] != out[len(out) - 1][0][0]:
+                out.append([[line[1], line[2], line[3]]])
+            else:
+                out[len(out) - 1].append([line[1], line[2], line[3]])
+        f.close()
+    except FileNotFoundError:
+        return "No result"
+
     index = 1
-    for line in f.readlines():
+    patched_children = []
+    for item in out:
+        value = ""
+        for i in item:
+            if len(value) != 0:
+                value += "|"
+            value += f"{i[0]},{i[1]},{i[2]}"
         patched_children.append(
             html.Button(
-                line.split(",")[1],
-                id={"type": "btn-step", "index": index, "value": line},
+                item[0][0],
+                id={"type": "btn-step", "index": index, "value": str(value)},
             )
         )
         index += 1
-    f.close()
     return patched_children
 
 
@@ -73,8 +91,8 @@ def display_step(value):
 def display_output(_):
     if ctx.triggered_id == None:
         return ""
-    value = ctx.triggered_id.value.split(",")
-    return html.Div(f"{value[2]}, {value[3]}")
+    value = ctx.triggered_id.value.split("|")
+    return html.Div([html.Div(i) for i in value])
 
 
 @callback(
@@ -84,17 +102,22 @@ def display_output(_):
 def add_marker(_):
     if ctx.triggered_id == None:
         return ""
-    value = ctx.triggered_id.value.split(",")
-    return (
-        dl.DivMarker(
-            position=[float(value[2]), float(value[3])],
-            iconOptions=dict(
-                html="<img src='./assets/images/tc.png'/>",
-                className="tc-marker",
-                iconSize=[50, 50],
-            ),
-        ),
-    )
+    value = ctx.triggered_id.value.split("|")
+
+    marker = []
+    for i in value:
+        i = i.split(",")
+        marker.append(
+            dl.DivMarker(
+                position=[float(i[1]), float(i[2])],
+                iconOptions=dict(
+                    html="<img src='./assets/images/tc.png'/>",
+                    className="tc-marker",
+                    iconSize=[50, 50],
+                ),
+            )
+        )
+    return marker
 
 
 if __name__ == "__main__":
