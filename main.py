@@ -8,10 +8,17 @@ from ultralytics import YOLO
 import os
 
 
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
+
+
 # plotting ecmwf ifs data
 
 dt = datetime.datetime.now()
-date = dt.strftime("%Y-%m-%d")
+# date = dt.strftime("%Y-%m-%d")
+date = "2024-05-30"
 
 FH = FastHerbie(
     DATES=[date],
@@ -32,7 +39,7 @@ os.mkdir(f"input/{date}")
 for i in range(0, len(valid_time)):
     u = ds["u"][i][280:441, 1040:1361]
     v = ds["v"][i][280:441, 1040:1361]
-    ws = np.sqrt(u**2 + v**2)
+    ws = np.sqrt(u**2 + v**2)  # get wind speed
 
     plt.ioff()  # disable interactive mode
     dpi = 100
@@ -70,7 +77,7 @@ for i in range(0, len(valid_time)):
 # detect the tropical cyclone
 
 os.mkdir(f"output/{date}")
-f = open(f"result/{date}.csv", "a")
+f = open(f"result/{date}.csv", "w")
 image_list = os.listdir(f"input/{date}")
 
 model = YOLO("model/best.pt")
@@ -99,19 +106,30 @@ for i in range(0, len(image_list)):
 
         w = result[0].orig_shape[1]
         h = result[0].orig_shape[0]
-        lat = round(float(20 - (midy * 40 / h)), 5)
-        lon = round(float((midx * 80 / w) + 80), 5)
+        mlat = round(float(20 - (midy * 40 / h)), 5)
+        mlon = round(float((midx * 80 / w) + 80), 5)
+
+        wlon = round(float((x0 * 80 / w) + 80), 5)
+        nlat = round(float(20 - (y0 * 40 / h)), 5)
+        elon = round(float((x1 * 80 / w) + 80), 5)
+        slat = round(float(20 - (y1 * 40 / h)), 5)
+
+        widx = find_nearest(lon.values, wlon)
+        nidx = find_nearest(lat.values, nlat)
+        eidx = find_nearest(lon.values, elon)
+        sidx = find_nearest(lat.values, slat)
+
+        u = ds["u"][i][nidx:sidx, widx:eidx]
+        v = ds["v"][i][nidx:sidx, widx:eidx]
+        ws = np.sqrt(u**2 + v**2)
+        maxws = round(float(ws.values.max() * 3.6), 2)
 
         cv2.imwrite(f"output/{date}/{name}.jpg", img)
-        f.write(f"{date},{name},{lat},{lon},{x0},{y0},{x1},{y1},{score}\n")
+        f.write(f"{date},{name},{mlat},{mlon},{score},{maxws}\n")
 f.close()
 
 
 # generate colored output
-
-valid_time = ds["valid_time"]
-lat = ds["latitude"][280:441]
-lon = ds["longitude"][1040:1361]
 
 os.mkdir(f"assets/output/{date}")
 f = open(f"result/{date}.csv", "r")

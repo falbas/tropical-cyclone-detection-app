@@ -31,9 +31,9 @@ app.layout = [
                         "Tropical Cyclone Detection",
                         style={"borderBottom": "1px solid"},
                     ),
-                    html.P("Initial Time"),
+                    html.H2("Initial Time"),
                     dcc.Dropdown(dates, dates[0], searchable=False, id="initial-time"),
-                    html.Div(id="initial-time-output", children=[]),
+                    html.Div(id="initial-time-output"),
                     html.Div(id="step-output"),
                 ],
             ),
@@ -81,7 +81,7 @@ def display_step(value):
             )
         )
         index += 1
-    return patched_children
+    return [html.H2("Step"), html.Div(patched_children)]
 
 
 @callback(
@@ -92,7 +92,15 @@ def display_output(_):
     if ctx.triggered_id == None:
         return ""
     value = ctx.triggered_id.value.split("|")
-    return html.Div([html.Div(i) for i in value])
+    return [
+        html.H2("Result"),
+        html.Div(
+            [
+                html.Div(f"[{idx+1}] {x.split(',')[1]}, {x.split(',')[2]}")
+                for idx, x in enumerate(value)
+            ]
+        ),
+    ]
 
 
 @callback(
