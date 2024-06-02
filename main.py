@@ -132,7 +132,7 @@ for i in range(0, len(image_list)):
         u = ds["u"][i][nidx:sidx, widx:eidx]
         v = ds["v"][i][nidx:sidx, widx:eidx]
         ws = np.sqrt(u**2 + v**2)
-        maxws = round(float(ws.values.max() * 3.6), 2)
+        maxws = round(float(ws.values.max() * 3.6))
 
         # write the result
         cv2.imwrite(f"output/{date}/{name}.jpg", img)
