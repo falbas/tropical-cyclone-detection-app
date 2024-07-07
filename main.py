@@ -32,7 +32,7 @@ FH = FastHerbie(
 )
 # search = ":[u|v]:1000:"
 search = ":10[u|v]:"
-# FH.download(search)
+FH.download(search)
 ds = FH.xarray(search)
 
 # get variable from grib
