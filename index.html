@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="./assets/style.css" rel="stylesheet" />
+    <!-- flowbyte -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/flowbite@2.4.1/dist/flowbite.min.css"
+      rel="stylesheet"
+    />
+    <!-- leaflet -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <!-- leaflet plugin -->
+    <script src="//d3js.org/d3.v4.min.js"></script>
+    <script src="//npmcdn.com/geotiff@0.3.6/dist/geotiff.js"></script>
+    <script src="./assets/leaflet.canvaslayer.field.js"></script>
+    <!-- jquery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <!-- dayjs -->
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <title>Tropical Cyclone Detection</title>
+  </head>
+  <body>
+    <div class="flex">
+      <div class="w-[300px] p-5 flex flex-col">
+        <h1 class="text-2xl font-bold">Tropical Cyclone Detection</h1>
+        <div class="mt-5">
+          <label for="initial-time" class="text-xl">Initial Time</label>
+          <select
+            id="initial-time"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          ></select>
+        </div>
+        <div class="mt-5 grow flex flex-col h-4">
+          <div class="text-xl">Detection</div>
+          <ul id="detection" class="cursor-pointer overflow-y-auto"></ul>
+        </div>
+      </div>
+      <div class="w-full">
+        <div id="map" class="h-screen"></div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+      ;(async () => {
+        // set map
+        const map = L.map('map', {
+          center: [-0.97707, 117.52908],
+          zoom: 13,
+          zoomControl: false,
+        })
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 5,
+          attribution:
+            '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map)
+        // end set map
+
+        // set initial time select option
+        const setInitialTime = async (date) => {
+          $('#detection').html('')
+          const data = await fetch(`./result/${date}.csv`).then((r) => {
+            if (r.status !== 200) return []
+            return r.text().then((t) => {
+              return t
+                .trim()
+                .split('\n')
+                .map((l) => l.split(','))
+            })
+          })
+
+          if (data.length === 0) {
+            $('#detection').append(`
+              <li class="border p-1">
+                No results
+              </li>
+            `)
+          }
+
+          for (const x of data) {
+            $('#detection').append(`
+              <li class="border p-1 hover:bg-gray-100" data="${x[0]},${x[1]},${x[2]},${x[3]},${x[4]},${x[5]}">
+                <p>${x[1]}</p>
+                <p><i data-lucide="map-pin" class="inline"></i> ${x[2]}, ${x[3]}</p>
+                <p><i data-lucide="wind" class="inline"></i> ${x[5]} km/h</p>
+              </li>
+            `)
+          }
+          lucide.createIcons()
+        }
+
+        let d = dayjs()
+        setInitialTime(d.format('YYYY-MM-DD'))
+        for (let i = 0; i < 7; i++) {
+          $('#initial-time').append(`
+            <option value="${d.format('YYYY-MM-DD')}">
+              ${d.format('YYYY-MM-DD')}
+            </option>
+          `)
+          d = d.subtract(1, 'd')
+        }
+
+        $('#initial-time').on('input', async (e) => {
+          const val = e.target.value
+          setInitialTime(val)
+        })
+        // end set initial time select option
+
+        // set click event to show tc
+        let layerGroup = L.layerGroup().addTo(map)
+        $('#detection').on('click', 'li', (e) => {
+          $('#detection').prop('disabled', true)
+          const val = e.currentTarget.attributes['data'].value.split(',')
+          const latlng = [val[2], val[3]]
+
+          const uvUrl = [
+            `./input/${val[0]}-tif/${val[1]}-u.tif`,
+            `./input/${val[0]}-tif/${val[1]}-v.tif`,
+          ]
+          const promises = uvUrl.map(async (url) => {
+            try {
+              return await fetch(url).then((r) => r.arrayBuffer())
+            } catch (err) {}
+          })
+          Promise.all(promises).then(function (g) {
+            const windMarkerIcon = L.divIcon({
+              className: `tc-marker`,
+              html: `<img src='./assets/images/tc.png'/>`,
+              iconSize: [50, 50],
+            })
+            const windMarker = L.marker(latlng, { icon: windMarkerIcon })
+            const labelMarkerIcon = L.divIcon({
+              className: `label-marker`,
+              html: `
+            <div>
+              <div>${val[1]}</div>
+              <div><i data-lucide="wind"></i> ${val[5]} km/h</div>
+            </div>`,
+            })
+            const labelMarker = L.marker(latlng, { icon: labelMarkerIcon })
+            const vf = L.VectorField.fromGeoTIFFs(g[0], g[1], 50)
+            const windLayer = L.canvasLayer.vectorFieldAnim(vf)
+            layerGroup.remove()
+            layerGroup = L.layerGroup([
+              windMarker,
+              labelMarker,
+              windLayer,
+            ]).addTo(map)
+            map.flyTo(latlng)
+            lucide.createIcons()
+          })
+        })
+        // end set click event to show tc
+      })()
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.4.1/dist/flowbite.min.js"></script>
+  </body>
+</html>
