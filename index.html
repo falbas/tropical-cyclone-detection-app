@@ -9,6 +9,7 @@
       href="https://cdn.jsdelivr.net/npm/flowbite@2.4.1/dist/flowbite.min.css"
       rel="stylesheet"
     />
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- leaflet -->
     <link
       rel="stylesheet"
@@ -39,7 +40,7 @@
           <label for="initial-time" class="text-xl">Initial Time</label>
           <select
             id="initial-time"
-            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
           ></select>
         </div>
         <div class="mt-5 grow flex flex-col h-4">
@@ -47,8 +48,18 @@
           <ul id="detection" class="cursor-pointer overflow-y-auto"></ul>
         </div>
       </div>
-      <div class="w-full">
-        <div id="map" class="h-screen"></div>
+      <div class="w-full relative">
+        <div class="absolute top-0 right-0 z-10 w-1/3 text-right">
+          <div id="img-detection" class="w-full hidden"></div>
+          <button
+            id="btn-img-detection"
+            type="button"
+            class="hidden text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-1"
+          >
+            Show Detection
+          </button>
+        </div>
+        <div id="map" class="h-screen z-0"></div>
       </div>
     </div>
 
@@ -72,7 +83,11 @@
         const setInitialTime = async (date) => {
           $('#detection').html('')
           const data = await fetch(`./result/${date}.csv`).then((r) => {
-            if (r.status !== 200) return []
+            if (r.status !== 200) {
+              $('#btn-img-detection').addClass('hidden')
+              $('#img-detection').addClass('hidden')
+              return []
+            }
             return r.text().then((t) => {
               return t
                 .trim()
@@ -159,10 +174,24 @@
               windLayer,
             ]).addTo(map)
             map.flyTo(latlng)
+
+            $('#btn-img-detection').removeClass('hidden')
+            $('#img-detection').html(`
+              <img src="./output/${val[0]}/${val[1]}.jpg" class="w-full" />
+            `)
             lucide.createIcons()
           })
         })
         // end set click event to show tc
+
+        $('#btn-img-detection').click(() => {
+          $('#img-detection').toggleClass('hidden')
+          $('#btn-img-detection').text(
+            $('#img-detection').hasClass('hidden')
+              ? 'Show Detection'
+              : 'Hide Detection'
+          )
+        })
       })()
     </script>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@2.4.1/dist/flowbite.min.js"></script>
