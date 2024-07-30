@@ -109,7 +109,6 @@
               <li class="border p-1 hover:bg-gray-100" data="${x[0]},${x[1]},${x[2]},${x[3]},${x[4]},${x[5]}">
                 <p>${x[1]}</p>
                 <p><i data-lucide="map-pin" class="inline"></i> ${x[2]}, ${x[3]}</p>
-                <p><i data-lucide="wind" class="inline"></i> ${x[5]} km/h</p>
               </li>
             `)
           }
@@ -161,7 +160,7 @@
               html: `
             <div>
               <div>${val[1]}</div>
-              <div><i data-lucide="wind"></i> ${val[5]} km/h</div>
+              <div><i data-lucide="map-pin" class="inline"></i> ${val[2]}, ${val[3]}</div>
             </div>`,
             })
             const labelMarker = L.marker(latlng, { icon: labelMarkerIcon })

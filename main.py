@@ -9,12 +9,6 @@ import os
 import rasterio
 
 
-def find_nearest(array, value):
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
-    return idx
-
-
 # [plotting ecmwf ifs data]
 
 # get date now
@@ -30,7 +24,6 @@ FH = FastHerbie(
     product="oper",
     fxx=range(0, 147, 3),
 )
-# search = ":[u|v]:1000:"
 search = ":10[u|v]:"
 FH.download(search)
 ds = FH.xarray(search)
@@ -160,25 +153,7 @@ for i in range(0, len(image_list)):
         mlat = round(float(20 - (midy * 40 / h)), 5)
         mlon = round(float((midx * 80 / w) + 80), 5)
 
-        # get bounding box latlon
-        wlon = round(float((x0 * 80 / w) + 80), 5)
-        nlat = round(float(20 - (y0 * 40 / h)), 5)
-        elon = round(float((x1 * 80 / w) + 80), 5)
-        slat = round(float(20 - (y1 * 40 / h)), 5)
-
-        # get index of grib latlon
-        widx = find_nearest(lon.values, wlon)
-        nidx = find_nearest(lat.values, nlat)
-        eidx = find_nearest(lon.values, elon)
-        sidx = find_nearest(lat.values, slat)
-
-        # get max wind speed of the detection result
-        u = ds["u10"][i][nidx:sidx, widx:eidx]
-        v = ds["v10"][i][nidx:sidx, widx:eidx]
-        ws = np.sqrt(u**2 + v**2)
-        maxws = round(float(ws.values.max() * 3.6))
-
         # write the result
         cv2.imwrite(f"output/{date}/{name}.jpg", img)
-        f.write(f"{date},{name},{mlat},{mlon},{score},{maxws}\n")
+        f.write(f"{date},{name},{mlat},{mlon},{score}\n")
 f.close()
