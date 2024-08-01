@@ -89,6 +89,11 @@
               return []
             }
             return r.text().then((t) => {
+              if (t.length === 0) {
+                $('#btn-img-detection').addClass('hidden')
+                $('#img-detection').addClass('hidden')
+                return []
+              }
               return t
                 .trim()
                 .split('\n')
